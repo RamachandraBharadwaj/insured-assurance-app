@@ -3,8 +3,6 @@ name: Java CI with Maven
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
   build:
@@ -21,10 +19,21 @@ jobs:
         distribution: 'temurin'
 
     - name: Build with Maven
-      run: mvn clean install
+      run: mvn clean package
 
     - name: Upload WAR artifact
       uses: actions/upload-artifact@v4
       with:
         name: insured-assurance-artifact
         path: target/*.war
+
+    - name: Trigger Jenkins Deployment
+      run: |
+        curl -X POST "$JENKINS_URL/job/$JENKINS_JOB/buildWithParameters?token=$JENKINS_TRIGGER_TOKEN" \
+          --user $JENKINS_USER:$JENKINS_API_TOKEN
+      env:
+        JENKINS_URL: ${{ secrets.JENKINS_URL }}
+        JENKINS_USER: ${{ secrets.JENKINS_USER }}
+        JENKINS_API_TOKEN: ${{ secrets.JENKINS_API_TOKEN }}
+        JENKINS_JOB: ${{ secrets.JENKINS_JOB }}
+        JENKINS_TRIGGER_TOKEN: ${{ secrets.JENKINS_TRIGGER_TOKEN }}
