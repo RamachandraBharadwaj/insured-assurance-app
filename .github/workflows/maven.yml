@@ -1,0 +1,41 @@
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v3
+      with:
+        java-version: '21'
+        distribution: 'adopt'
+
+    - name: Build with Maven
+      run: mvn clean install
+
+    - name: Archive WAR
+      uses: actions/upload-artifact@v3
+      with:
+        name: insured-app
+        path: target/*.war
+
+    - name: Trigger Jenkins Deployment
+      run: |
+        curl -X POST "$JENKINS_URL/job/$JENKINS_JOB/buildWithParameters?token=$JENKINS_TOKEN" \
+        --user $JENKINS_USER:$JENKINS_API_TOKEN
+      env:
+        JENKINS_URL: ${{ secrets.JENKINS_URL }}
+        JENKINS_JOB: ${{ secrets.JENKINS_JOB }}
+        JENKINS_TOKEN: ${{ secrets.JENKINS_TRIGGER_TOKEN }}
+        JENKINS_USER: ${{ secrets.JENKINS_USER }}
+        JENKINS_API_TOKEN: ${{ secrets.JENKINS_API_TOKEN }}
